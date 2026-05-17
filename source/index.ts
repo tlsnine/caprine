@@ -34,7 +34,6 @@ import {
 import {process as processEmojiUrl} from './emoji';
 import ensureOnline from './ensure-online';
 import {setUpMenuBarMode} from './menu-bar-mode';
-import {caprineIconPath} from './constants';
 
 ipc.setMaxListeners(100);
 
@@ -105,47 +104,16 @@ app.on('ready', () => {
 });
 
 async function updateBadge(messageCount: number): Promise<void> {
-	if (!is.windows) {
-		if (config.get('showUnreadBadge') && !isDNDEnabled) {
-			app.badgeCount = messageCount;
-		}
-
-		if (
-			is.macos
-			&& !isDNDEnabled
-			&& config.get('bounceDockOnMessage')
-			&& previousMessageCount !== messageCount
-		) {
-			app.dock.bounce('informational');
-			previousMessageCount = messageCount;
-		}
+	if (config.get('showUnreadBadge') && !isDNDEnabled) {
+		app.badgeCount = messageCount;
 	}
 
-	if (!is.macos) {
-		if (config.get('showUnreadBadge')) {
-			tray.setBadge(messageCount > 0);
-		}
-
-		if (config.get('flashWindowOnMessage')) {
-			mainWindow.flashFrame(messageCount !== 0);
-		}
+	if (!isDNDEnabled && config.get('bounceDockOnMessage') && previousMessageCount !== messageCount) {
+		app.dock.bounce('informational');
+		previousMessageCount = messageCount;
 	}
 
 	tray.update(messageCount);
-
-	if (is.windows) {
-		if (!config.get('showUnreadBadge') || messageCount === 0) {
-			mainWindow.setOverlayIcon(null, '');
-		} else {
-			// Delegate drawing of overlay icon to renderer process
-			updateOverlayIcon(await ipc.callRenderer(mainWindow, 'render-overlay-icon', messageCount));
-		}
-	}
-}
-
-function updateOverlayIcon({data, text}: {data: string; text: string}): void {
-	const img = nativeImage.createFromDataURL(data);
-	mainWindow.setOverlayIcon(img, text);
 }
 
 type BeforeSendHeadersResponse = {
@@ -252,10 +220,8 @@ function setNotificationsMute(status: boolean): void {
 	config.set('notificationsMuted', status);
 	muteMenuItem.checked = status;
 
-	if (is.macos) {
-		const item = dockMenu.items.find(x => x.label === label);
-		item!.checked = status;
-	}
+	const item = dockMenu.items.find(x => x.label === label);
+	item!.checked = status;
 }
 
 function createMainWindow(): BrowserWindow {
@@ -273,16 +239,10 @@ function createMainWindow(): BrowserWindow {
 		y: lastWindowState.y,
 		width: lastWindowState.width,
 		height: lastWindowState.height,
-		icon: is.linux ? caprineIconPath : undefined,
 		minWidth: 400,
 		minHeight: 200,
 		alwaysOnTop: config.get('alwaysOnTop'),
-		titleBarStyle: 'hiddenInset',
-		trafficLightPosition: {
-			x: 80,
-			y: 20,
-		},
-		autoHideMenuBar: config.get('autoHideMenuBar'),
+		titleBarStyle: 'hidden',
 		webPreferences: {
 			preload: path.join(__dirname, 'browser.js'),
 			contextIsolation: true,
@@ -306,9 +266,7 @@ function createMainWindow(): BrowserWindow {
 		}
 	});
 
-	if (is.macos) {
-		win.setSheetOffset(40);
-	}
+	win.setSheetOffset(28);
 
 	win.loadURL(mainURL);
 
@@ -321,7 +279,7 @@ function createMainWindow(): BrowserWindow {
 		// Workaround for https://github.com/electron/electron/issues/20263
 		// Closing the app window when on full screen leaves a black screen
 		// Exit fullscreen before closing
-		if (is.macos && mainWindow.isFullScreen()) {
+		if (mainWindow.isFullScreen()) {
 			mainWindow.once('leave-full-screen', () => {
 				mainWindow.hide();
 			});
@@ -333,19 +291,8 @@ function createMainWindow(): BrowserWindow {
 
 			// Workaround for https://github.com/electron/electron/issues/10023
 			win.blur();
-			if (is.macos) {
-				// On macOS we're using `app.hide()` in order to focus the previous window correctly
-				app.hide();
-			} else {
-				win.hide();
-			}
-		}
-	});
-
-	win.on('focus', () => {
-		if (config.get('flashWindowOnMessage')) {
-			// This is a security in the case where messageCount is not reset by page title update
-			win.flashFrame(false);
+			// Use `app.hide()` to focus the previous window correctly
+			app.hide();
 		}
 	});
 
@@ -378,38 +325,39 @@ function createMainWindow(): BrowserWindow {
 	// Start in menu bar mode if enabled, otherwise start normally
 	setUpMenuBarMode(mainWindow);
 
-	if (is.macos) {
-		const firstItem: MenuItemConstructorOptions = {
-			label: 'Mute Notifications',
-			type: 'checkbox',
-			visible: is.development,
-			checked: config.get('notificationsMuted'),
-			async click() {
-				setNotificationsMute(await ipc.callRenderer(mainWindow, 'toggle-mute-notifications'));
-			},
-		};
+	const firstItem: MenuItemConstructorOptions = {
+		label: 'Mute Notifications',
+		type: 'checkbox',
+		visible: is.development,
+		checked: config.get('notificationsMuted'),
+		async click() {
+			setNotificationsMute(await ipc.callRenderer(mainWindow, 'toggle-mute-notifications'));
+		},
+	};
 
-		dockMenu = Menu.buildFromTemplate([firstItem]);
-		app.dock.setMenu(dockMenu);
+	dockMenu = Menu.buildFromTemplate([firstItem]);
+	app.dock.setMenu(dockMenu);
 
-		// Dock icon is hidden initially on macOS
-		if (config.get('showDockIcon')) {
-			app.dock.show();
+	// Dock icon is hidden initially on macOS
+	if (config.get('showDockIcon')) {
+		app.dock.show();
+	}
+
+	ipc.once('conversations', () => {
+		// Messenger sorts the conversations by unread state.
+		// We select the first conversation from the list.
+		sendAction('jump-to-conversation', 1);
+	});
+
+	ipc.answerRenderer('conversations', (conversations: Conversation[]) => {
+		if (conversations.length === 0) {
+			return;
 		}
 
-		ipc.once('conversations', () => {
-			// Messenger sorts the conversations by unread state.
-			// We select the first conversation from the list.
-			sendAction('jump-to-conversation', 1);
-		});
-
-		ipc.answerRenderer('conversations', (conversations: Conversation[]) => {
-			if (conversations.length === 0) {
-				return;
-			}
-
-			const items = conversations.map(({label, icon}, index) => ({
-				label: `${label}`,
+		const items = conversations
+			.filter(({label}) => label && label.trim().length > 0)
+			.map(({label, icon}, index) => ({
+				label,
 				icon: nativeImage.createFromDataURL(icon),
 				click() {
 					mainWindow.show();
@@ -417,9 +365,12 @@ function createMainWindow(): BrowserWindow {
 				},
 			}));
 
-			app.dock.setMenu(Menu.buildFromTemplate([firstItem, {type: 'separator'}, ...items]));
-		});
-	}
+		if (items.length === 0) {
+			return;
+		}
+
+		app.dock.setMenu(Menu.buildFromTemplate([firstItem, {type: 'separator'}, ...items]));
+	});
 
 	// Update badge on conversations change
 	ipc.answerRenderer('update-tray-icon', async (messageCount: number) => {
@@ -467,19 +418,16 @@ function createMainWindow(): BrowserWindow {
 			mainWindow.show();
 		}
 
-		if (is.macos) {
-			// TODO: 'update-dnd-mode' is not called
-			ipc.answerRenderer('update-dnd-mode', async (initialSoundsValue: boolean) => {
-				doNotDisturb.on('change', (doNotDisturb: boolean) => {
-					isDNDEnabled = doNotDisturb;
-					ipc.callRenderer(mainWindow, 'toggle-sounds', {checked: isDNDEnabled ? false : initialSoundsValue});
-				});
-
-				isDNDEnabled = await doNotDisturb.isEnabled();
-
-				return isDNDEnabled ? false : initialSoundsValue;
+		ipc.answerRenderer('update-dnd-mode', async (initialSoundsValue: boolean) => {
+			doNotDisturb.on('change', (doNotDisturb: boolean) => {
+				isDNDEnabled = doNotDisturb;
+				ipc.callRenderer(mainWindow, 'toggle-sounds', {checked: isDNDEnabled ? false : initialSoundsValue});
 			});
-		}
+
+			isDNDEnabled = await doNotDisturb.isEnabled();
+
+			return isDNDEnabled ? false : initialSoundsValue;
+		});
 
 		// TODO: Re-enable this when muting notifications is fixed
 		// setNotificationsMute(await ipc.callRenderer(mainWindow, 'toggle-mute-notifications', {
@@ -492,9 +440,7 @@ function createMainWindow(): BrowserWindow {
 			readFileSync(path.join(__dirname, 'notifications-isolated.js'), 'utf8'),
 		);
 
-		if (is.macos) {
-			await import('./touch-bar');
-		}
+		await import('./touch-bar');
 	});
 
 	webContents.setWindowOpenHandler(details => {
@@ -574,12 +520,10 @@ function createMainWindow(): BrowserWindow {
 	});
 })();
 
-if (is.macos) {
-	ipc.answerRenderer('set-vibrancy', () => {
-		mainWindow.setBackgroundColor('#80FFFFFF'); // Transparent, workaround for vibrancy issue.
-		mainWindow.setVibrancy('sidebar');
-	});
-}
+ipc.answerRenderer('set-vibrancy', () => {
+	mainWindow.setBackgroundColor('#80FFFFFF');
+	mainWindow.setVibrancy('sidebar');
+});
 
 function toggleMaximized(): void {
 	if (mainWindow.isMaximized()) {
@@ -590,15 +534,11 @@ function toggleMaximized(): void {
 }
 
 ipc.answerRenderer('titlebar-doubleclick', () => {
-	if (is.macos) {
-		const doubleClickAction = systemPreferences.getUserDefault('AppleActionOnDoubleClick', 'string');
+	const doubleClickAction = systemPreferences.getUserDefault('AppleActionOnDoubleClick', 'string');
 
-		if (doubleClickAction === 'Minimize') {
-			mainWindow.minimize();
-		} else if (doubleClickAction === 'Maximize') {
-			toggleMaximized();
-		}
-	} else {
+	if (doubleClickAction === 'Minimize') {
+		mainWindow.minimize();
+	} else if (doubleClickAction === 'Maximize') {
 		toggleMaximized();
 	}
 });

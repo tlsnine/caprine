@@ -1,6 +1,4 @@
-import process from 'node:process';
 import {ipcRenderer as ipc} from 'electron-better-ipc';
-import {is} from 'electron-util';
 import elementReady from 'element-ready';
 import {nativeTheme} from '@electron/remote';
 import selectors from './browser/selectors';
@@ -368,9 +366,7 @@ async function setPrivateMode(): Promise<void> {
 	const privateMode = await ipc.callMain<undefined, boolean>('get-config-privateMode');
 	document.documentElement.classList.toggle('private-mode', privateMode);
 
-	if (is.macos) {
-		sendConversationList();
-	}
+	sendConversationList();
 }
 
 async function updateVibrancy(): Promise<void> {
@@ -473,19 +469,12 @@ ipc.answerMain('render-overlay-icon', (messageCount: number): {data: string; tex
 ipc.answerMain('render-native-emoji', (emoji: string): string => {
 	const canvas = document.createElement('canvas');
 	const context = canvas.getContext('2d')!;
-	const systemFont = is.linux ? 'emoji, system-ui' : 'system-ui';
 	canvas.width = 256;
 	canvas.height = 256;
 	context.textAlign = 'center';
 	context.textBaseline = 'middle';
-	if (is.macos) {
-		context.font = `256px ${systemFont}`;
-		context.fillText(emoji, 128, 154);
-	} else {
-		context.textBaseline = 'bottom';
-		context.font = `225px ${systemFont}`;
-		context.fillText(emoji, 128, 256);
-	}
+	context.font = '256px system-ui';
+	context.fillText(emoji, 128, 154);
 
 	const dataUrl = canvas.toDataURL();
 	return dataUrl;
@@ -768,7 +757,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 	setZoom(zoomFactor);
 
 	// Enable OS specific styles
-	document.documentElement.classList.add(`os-${process.platform}`);
+	document.documentElement.classList.add('os-darwin');
+
+	// Set up macOS titlebar: make header bars draggable with proper spacing
+	setupMacOSTitlebar();
 
 	// Restore sidebar view state to what is was set before quitting
 	updateSidebar();
@@ -782,15 +774,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	setPrivateMode();
 
 	// Configure do not disturb
-	if (is.macos) {
-		await updateDoNotDisturb();
-	}
-
-	// Prevent flash of white on startup when in dark mode
-	// TODO: find a CSS-only solution
-	if (!is.macos && nativeTheme.shouldUseDarkColors) {
-		document.documentElement.style.backgroundColor = '#1e1e1e';
-	}
+	await updateDoNotDisturb();
 
 	// Disable autoplay if set in settings
 	toggleVideoAutoplay();
@@ -802,16 +786,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 	observeThemeBugs();
 });
 
-// Handle title bar double-click.
+// Handle title bar double-click on our custom titlebar
 window.addEventListener('dblclick', (event: Event) => {
 	const target = event.target as HTMLElement;
-	const titleBar = target.closest('._36ic._5l-3,._5742,._6-xk,._673w');
 
-	if (!titleBar) {
-		return;
+	if (target.id === 'caprine-titlebar' || target.id === 'caprine-titlebar-text') {
+		ipc.callMain('titlebar-doubleclick');
 	}
-
-	ipc.callMain('titlebar-doubleclick');
 }, {
 	passive: true,
 });
@@ -836,11 +817,23 @@ window.addEventListener('focus', () => {
 	document.documentElement.classList.remove('is-window-inactive');
 });
 
+function setupMacOSTitlebar(): void {
+	const titlebar = document.createElement('div');
+	titlebar.id = 'caprine-titlebar';
+
+	const titleText = document.createElement('span');
+	titleText.id = 'caprine-titlebar-text';
+	titleText.textContent = 'Caprine';
+	titlebar.append(titleText);
+
+	document.body.prepend(titlebar);
+}
+
 // It's not possible to add multiple accelerators
 // so this needs to be done the old-school way
 document.addEventListener('keydown', async event => {
 	// The `!event.altKey` part is a workaround for https://github.com/electron/electron/issues/13895
-	const combineKey = is.macos ? event.metaKey : event.ctrlKey && !event.altKey;
+	const combineKey = event.metaKey;
 
 	if (!combineKey) {
 		return;

@@ -4,7 +4,6 @@ import {
 	BrowserWindow,
 	Menu,
 } from 'electron';
-import {is} from 'electron-util';
 import config from './config';
 import tray from './tray';
 
@@ -38,9 +37,5 @@ export function toggleMenuBarMode(window: BrowserWindow): void {
 }
 
 export function setUpMenuBarMode(window: BrowserWindow): void {
-	if (is.macos) {
-		toggleMenuBarMode(window);
-	} else if (config.get('showTrayIcon') && !config.get('quitOnWindowClose')) {
-		tray.create(window);
-	}
+	toggleMenuBarMode(window);
 }

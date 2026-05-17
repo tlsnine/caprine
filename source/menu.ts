@@ -11,7 +11,6 @@ import {
 	is,
 	appMenu,
 	openUrlMenuItem,
-	aboutMenuItem,
 	openNewGitHubIssue,
 	debugInfo,
 } from 'electron-util';
@@ -22,11 +21,9 @@ import {
 	showRestartDialog,
 	getWindow,
 	toggleTrayIcon,
-	toggleLaunchMinimized,
 } from './util';
 import {generateSubmenu as generateEmojiSubmenu} from './emoji';
 import {toggleMenuBarMode} from './menu-bar-mode';
-import {caprineIconPath} from './constants';
 
 export default async function updateMenu(): Promise<Menu> {
 	const newConversationItem: MenuItemConstructorOptions = {
@@ -250,7 +247,6 @@ Press Command/Ctrl+R in Caprine to see your changes.
 		{
 			label: 'Bounce Dock on Message',
 			type: 'checkbox',
-			visible: is.macos,
 			checked: config.get('bounceDockOnMessage'),
 			click() {
 				config.set('bounceDockOnMessage', !config.get('bounceDockOnMessage'));
@@ -331,7 +327,6 @@ Press Command/Ctrl+R in Caprine to see your changes.
 			label: 'Show Menu Bar Icon',
 			id: 'menuBarMode',
 			type: 'checkbox',
-			visible: is.macos,
 			checked: config.get('menuBarMode'),
 			click() {
 				config.set('menuBarMode', !config.get('menuBarMode'));
@@ -373,9 +368,7 @@ Press Command/Ctrl+R in Caprine to see your changes.
 			},
 		},
 		{
-			/* TODO: Add support for Linux */
 			label: 'Launch at Login',
-			visible: !is.linux,
 			type: 'checkbox',
 			checked: app.getLoginItemSettings().openAtLogin,
 			click(menuItem) {
@@ -386,25 +379,6 @@ Press Command/Ctrl+R in Caprine to see your changes.
 			},
 		},
 		{
-			label: 'Auto Hide Menu Bar',
-			type: 'checkbox',
-			visible: !is.macos,
-			checked: config.get('autoHideMenuBar'),
-			click(menuItem, focusedWindow) {
-				config.set('autoHideMenuBar', menuItem.checked);
-				focusedWindow?.setAutoHideMenuBar(menuItem.checked);
-				focusedWindow?.setMenuBarVisibility(!menuItem.checked);
-
-				if (menuItem.checked) {
-					dialog.showMessageBox({
-						type: 'info',
-						message: 'Press the Alt key to toggle the menu bar.',
-						buttons: ['OK'],
-					});
-				}
-			},
-		},
-		{
 			label: 'Automatic Updates',
 			type: 'checkbox',
 			checked: config.get('autoUpdate'),
@@ -412,33 +386,13 @@ Press Command/Ctrl+R in Caprine to see your changes.
 				config.set('autoUpdate', !config.get('autoUpdate'));
 			},
 		},
-		{
-			/* TODO: Fix notifications */
-			label: 'Flash Window on Message',
-			type: 'checkbox',
-			visible: is.development,
-			checked: config.get('flashWindowOnMessage'),
-			click(menuItem) {
-				config.set('flashWindowOnMessage', menuItem.checked);
-			},
-		},
-		{
+{
 			id: 'showTrayIcon',
 			label: 'Show Tray Icon',
 			type: 'checkbox',
-			enabled: !is.macos && !config.get('launchMinimized'),
 			checked: config.get('showTrayIcon'),
 			click() {
 				toggleTrayIcon();
-			},
-		},
-		{
-			label: 'Launch Minimized',
-			type: 'checkbox',
-			visible: !is.macos,
-			checked: config.get('launchMinimized'),
-			click() {
-				toggleLaunchMinimized(menu);
 			},
 		},
 		{
@@ -489,7 +443,6 @@ Press Command/Ctrl+R in Caprine to see your changes.
 		},
 		{
 			label: 'Vibrancy',
-			visible: is.macos,
 			submenu: vibrancySubmenu,
 		},
 		{
@@ -666,7 +619,7 @@ Press Command/Ctrl+R in Caprine to see your changes.
 		},
 		{
 			label: 'Spell Checker Language',
-			visible: !is.macos && config.get('isSpellCheckerEnabled'),
+			visible: config.get('isSpellCheckerEnabled'),
 			submenu: spellCheckerSubmenu,
 		},
 	];
@@ -703,20 +656,6 @@ ${debugInfo()}`;
 			},
 		},
 	];
-
-	if (!is.macos) {
-		helpSubmenu.push(
-			{
-				type: 'separator',
-			},
-			aboutMenuItem({
-				icon: caprineIconPath,
-				copyright: 'Created by Sindre Sorhus',
-				text: 'Maintainers:\nDušan Simić\nLefteris Garyfalakis\nMichael Quevillon\nNikolas Spiridakis',
-				website: 'https://github.com/sindresorhus/caprine',
-			}),
-		);
-	}
 
 	const debugSubmenu: MenuItemConstructorOptions[] = [
 		{
@@ -813,63 +752,7 @@ ${debugInfo()}`;
 		},
 	];
 
-	const linuxWindowsTemplate: MenuItemConstructorOptions[] = [
-		{
-			role: 'fileMenu',
-			submenu: [
-				newConversationItem,
-				newRoomItem,
-				{
-					type: 'separator',
-				},
-				{
-					label: 'Caprine Settings',
-					submenu: preferencesSubmenu,
-				},
-				{
-					label: 'Messenger Settings',
-					accelerator: 'Control+,',
-					click() {
-						sendAction('show-preferences');
-					},
-				},
-				{
-					type: 'separator',
-				},
-				...switchItems,
-				{
-					type: 'separator',
-				},
-				{
-					label: 'Relaunch Caprine',
-					click() {
-						app.relaunch();
-						app.quit();
-					},
-				},
-				{
-					role: 'quit',
-				},
-			],
-		},
-		{
-			role: 'editMenu',
-		},
-		{
-			role: 'viewMenu',
-			submenu: viewSubmenu,
-		},
-		{
-			label: 'Conversation',
-			submenu: conversationSubmenu,
-		},
-		{
-			role: 'help',
-			submenu: helpSubmenu,
-		},
-	];
-
-	const template = is.macos ? macosTemplate : linuxWindowsTemplate;
+	const template = macosTemplate;
 
 	if (is.development) {
 		template.push({
