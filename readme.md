@@ -6,13 +6,15 @@
 	</a>
 	<h1>Caprine</h1>
 	<p>
-		<b>Elegant Facebook Messenger desktop app for macOS</b>
+		<b>Elegant Facebook Messenger desktop app — macOS only</b>
+	</p>
+	<p>
+		<em>Fork of <a href="https://github.com/sindresorhus/caprine">sindresorhus/caprine</a> rebuilt exclusively for macOS.<br>
+		Linux and Windows are no longer supported.</em>
 	</p>
 	<br>
-	<br>
 	<p>
-		Caprine is an unofficial and privacy-focused Facebook Messenger app with many useful features.
-		This is a macOS-only fork with a native macOS title bar and streamlined codebase.
+		Caprine is an unofficial and privacy-focused Facebook Messenger app with a native macOS title bar, proper drag support, and a streamlined codebase.
 	</p>
 	<b>
 		Caprine is feature complete. However, we welcome contributions for improvements and bug fixes.
@@ -26,6 +28,10 @@
 		<img src="media/screenshot.png" width="846">
 	</a>
 </div>
+
+## ⚠️ macOS Only
+
+This fork is **macOS only**. Linux and Windows support has been removed. If you need cross-platform support, use the [original Caprine](https://github.com/sindresorhus/caprine).
 
 ## Highlights
 
@@ -46,7 +52,7 @@
 
 ## Install
 
-*macOS 12+ (Intel and Apple Silicon) is supported.*
+**macOS 12+** (Intel and Apple Silicon). No other platforms are supported.
 
 Download the latest version on the [releases page](https://github.com/tlsnine/caprine/releases/latest).
 
