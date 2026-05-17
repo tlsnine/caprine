@@ -2,9 +2,9 @@
 	"name": "caprine",
 	"productName": "Caprine",
 	"version": "2.61.0",
-	"description": "Elegant Facebook Messenger desktop app",
+	"description": "Elegant Facebook Messenger desktop app for macOS",
 	"license": "MIT",
-	"repository": "sindresorhus/caprine",
+	"repository": "tlsnine/caprine",
 	"author": {
 		"name": "Sindre Sorhus",
 		"email": "sindresorhus@gmail.com",
@@ -23,9 +23,7 @@
 		"test": "npm run test:tsc && npm run lint",
 		"start": "tsc && electron .",
 		"build": "tsc",
-		"dist:linux": "electron-builder --linux",
-		"dist:mac": "electron-builder --mac",
-		"dist:win": "electron-builder --win",
+		"dist": "electron-builder --mac",
 		"release": "np --no-publish"
 	},
 	"dependencies": {
@@ -147,43 +145,6 @@
 					"path": "/Applications"
 				}
 			]
-		},
-		"linux": {
-			"target": [
-				"AppImage",
-				"deb"
-			],
-			"icon": "build/icons/",
-			"synopsis": "Elegant Facebook Messenger desktop app",
-			"description": "Caprine is an unofficial and privacy focused Facebook Messenger app with many useful features.",
-			"category": "Network;Chat"
-		},
-		"snap": {
-			"plugs": [
-				"default",
-				"camera",
-				"removable-media"
-			],
-			"publish": [
-				{
-					"provider": "github"
-				},
-				{
-					"provider": "snapStore",
-					"channels": [
-						"stable"
-					]
-				}
-			]
-		},
-		"win": {
-			"verifyUpdateCodeSignature": false,
-			"icon": "build/icon.png"
-		},
-		"nsis": {
-			"oneClick": false,
-			"perMachine": false,
-			"allowToChangeInstallationDirectory": true
 		}
 	},
 	"husky": {

@@ -6,7 +6,6 @@ import {
 	BrowserWindow,
 	MenuItemConstructorOptions,
 } from 'electron';
-import {is} from 'electron-util';
 import config from './config';
 import {toggleMenuBarMode} from './menu-bar-mode';
 
@@ -32,66 +31,54 @@ export default {
 					win.show();
 				}
 
-				// Workaround for https://github.com/electron/electron/issues/20858
-				// `setAlwaysOnTop` stops working after hiding the window on KDE Plasma.
 				const alwaysOnTopMenuItem = Menu.getApplicationMenu()!.getMenuItemById('always-on-top')!;
 				win.setAlwaysOnTop(alwaysOnTopMenuItem.checked);
 			}
 		}
 
-		const macosMenuItems: MenuItemConstructorOptions[] = is.macos
-			? [
-				{
-					label: 'Disable Menu Bar Mode',
-					click() {
-						config.set('menuBarMode', false);
-						toggleMenuBarMode(win);
-					},
-				},
-				{
-					label: 'Show Dock Icon',
-					type: 'checkbox',
-					checked: config.get('showDockIcon'),
-					click(menuItem) {
-						config.set('showDockIcon', menuItem.checked);
-
-						if (menuItem.checked) {
-							app.dock.show();
-						} else {
-							app.dock.hide();
-						}
-
-						const dockMenuItem = contextMenu.getMenuItemById('dockMenu')!;
-						dockMenuItem.visible = !menuItem.checked;
-					},
-				},
-				{
-					type: 'separator',
-				},
-				{
-					id: 'dockMenu',
-					label: 'Menu',
-					visible: !config.get('showDockIcon'),
-					submenu: Menu.getApplicationMenu()!,
-				},
-			] : [];
-
-		contextMenu = Menu.buildFromTemplate([
+		const trayMenuItems: MenuItemConstructorOptions[] = [
 			{
-				label: 'Toggle',
-				visible: !is.macos,
+				label: 'Disable Menu Bar Mode',
 				click() {
-					toggleWindow();
+					config.set('menuBarMode', false);
+					toggleMenuBarMode(win);
 				},
 			},
-			...macosMenuItems,
+			{
+				label: 'Show Dock Icon',
+				type: 'checkbox',
+				checked: config.get('showDockIcon'),
+				click(menuItem: Electron.MenuItem) {
+					config.set('showDockIcon', menuItem.checked);
+
+					if (menuItem.checked) {
+						app.dock.show();
+					} else {
+						app.dock.hide();
+					}
+
+					const dockMenuItem = contextMenu.getMenuItemById('dockMenu')!;
+					dockMenuItem.visible = !menuItem.checked;
+				},
+			},
+			{
+				type: 'separator',
+			},
+			{
+				id: 'dockMenu',
+				label: 'Menu',
+				visible: !config.get('showDockIcon'),
+				submenu: Menu.getApplicationMenu()!,
+			},
 			{
 				type: 'separator',
 			},
 			{
 				role: 'quit',
 			},
-		]);
+		];
+
+		contextMenu = Menu.buildFromTemplate(trayMenuItems);
 
 		tray = new Tray(getIconPath(false));
 
@@ -113,7 +100,6 @@ export default {
 	},
 
 	destroy() {
-		// Workaround for https://github.com/electron/electron/issues/14036
 		setTimeout(() => {
 			tray?.destroy();
 			tray = undefined;
@@ -128,14 +114,6 @@ export default {
 		previousMessageCount = messageCount;
 		tray.setImage(getIconPath(messageCount > 0));
 		updateToolTip(messageCount);
-	},
-
-	setBadge(shouldDisplayUnread: boolean) {
-		if (is.macos || !tray) {
-			return;
-		}
-
-		tray.setImage(getIconPath(shouldDisplayUnread));
 	},
 };
 
@@ -154,17 +132,6 @@ function updateToolTip(counter: number): void {
 }
 
 function getIconPath(hasUnreadMessages: boolean): string {
-	const icon = is.macos
-		? getMacOSIconName(hasUnreadMessages)
-		: getNonMacOSIconName(hasUnreadMessages);
-
-	return path.join(__dirname, '..', `static/${icon}`);
-}
-
-function getNonMacOSIconName(hasUnreadMessages: boolean): string {
-	return hasUnreadMessages ? 'IconTrayUnread.png' : 'IconTray.png';
-}
-
-function getMacOSIconName(hasUnreadMessages: boolean): string {
-	return hasUnreadMessages ? 'IconMenuBarUnreadTemplate.png' : 'IconMenuBarTemplate.png';
+	const icon = hasUnreadMessages ? 'IconMenuBarUnreadTemplate.png' : 'IconMenuBarTemplate.png';
+	return path.join(__dirname, '..', 'static', icon);
 }

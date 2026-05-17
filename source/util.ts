@@ -2,10 +2,8 @@ import {
 	app,
 	BrowserWindow,
 	dialog,
-	Menu,
 } from 'electron';
 import {ipcMain} from 'electron-better-ipc';
-import {is} from 'electron-util';
 import config from './config';
 import tray from './tray';
 
@@ -17,9 +15,7 @@ export function getWindow(): BrowserWindow {
 export function sendAction<T>(action: string, arguments_?: T): void {
 	const win = getWindow();
 
-	if (is.macos) {
-		win.restore();
-	}
+	win.restore();
 
 	ipcMain.callRenderer(win, action, arguments_);
 }
@@ -69,30 +65,4 @@ export const toggleTrayIcon = (): void => {
 	} else {
 		tray.create(getWindow());
 	}
-};
-
-export const toggleLaunchMinimized = (menu: Menu): void => {
-	config.set('launchMinimized', !config.get('launchMinimized'));
-	const showTrayIconItem = menu.getMenuItemById('showTrayIcon')!;
-
-	if (config.get('launchMinimized')) {
-		if (!config.get('showTrayIcon')) {
-			toggleTrayIcon();
-		}
-
-		disableMenuItem(showTrayIconItem, true);
-
-		dialog.showMessageBox({
-			type: 'info',
-			message: 'The “Show Tray Icon” setting is force-enabled while the “Launch Minimized” setting is enabled.',
-			buttons: ['OK'],
-		});
-	} else {
-		showTrayIconItem.enabled = true;
-	}
-};
-
-const disableMenuItem = (menuItem: Electron.MenuItem, checked: boolean): void => {
-	menuItem.enabled = false;
-	menuItem.checked = checked;
 };

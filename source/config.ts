@@ -1,5 +1,4 @@
 import Store from 'electron-store';
-import {is} from 'electron-util';
 import {EmojiStyle} from './emoji';
 
 export type StoreType = {
@@ -24,7 +23,6 @@ export type StoreType = {
 	showUnreadBadge: boolean;
 	showMessageButtons: boolean;
 	launchMinimized: boolean;
-	flashWindowOnMessage: boolean;
 	notificationMessagePreview: boolean;
 	block: {
 		chatSeen: boolean;
@@ -34,7 +32,6 @@ export type StoreType = {
 	emojiStyle: EmojiStyle;
 	useWorkChat: boolean;
 	sidebar: 'default' | 'hidden' | 'narrow' | 'wide';
-	autoHideMenuBar: boolean;
 	autoUpdate: boolean;
 	notificationsMuted: boolean;
 	callRingtoneMuted: boolean;
@@ -134,10 +131,6 @@ const schema: Store.Schema<StoreType> = {
 		type: 'boolean',
 		default: false,
 	},
-	flashWindowOnMessage: {
-		type: 'boolean',
-		default: true,
-	},
 	notificationMessagePreview: {
 		type: 'boolean',
 		default: true,
@@ -174,10 +167,6 @@ const schema: Store.Schema<StoreType> = {
 		type: 'string',
 		enum: ['default', 'hidden', 'narrow', 'wide'],
 		default: 'default',
-	},
-	autoHideMenuBar: {
-		type: 'boolean',
-		default: false,
 	},
 	autoUpdate: {
 		type: 'boolean',
@@ -223,7 +212,7 @@ const schema: Store.Schema<StoreType> = {
 function updateVibrancySetting(store: Store<StoreType>): void {
 	const vibrancy = store.get('vibrancy');
 
-	if (!is.macos || !vibrancy) {
+	if (!vibrancy) {
 		store.set('vibrancy', 'none');
 	// @ts-expect-error
 	} else if (vibrancy === true) {
@@ -248,7 +237,7 @@ function updateThemeSetting(store: Store<StoreType>): void {
 	const darkMode = store.get('darkMode');
 	const followSystemAppearance = store.get('followSystemAppearance');
 
-	if (is.macos && followSystemAppearance) {
+	if (followSystemAppearance) {
 		store.set('theme', 'system');
 	} else if (darkMode !== undefined) {
 		store.set('theme', darkMode ? 'dark' : 'light');

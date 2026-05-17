@@ -6,7 +6,6 @@ import {
 	CallbackResponse,
 	Menu,
 } from 'electron';
-import {is} from 'electron-util';
 import {memoize} from 'lodash';
 import {showRestartDialog, getWindow, sendBackgroundAction} from './util';
 import config from './config';
@@ -367,7 +366,7 @@ export async function generateSubmenu(
 		emojiMenuOption('System', EmojiStyle.Native, true),
 		{type: 'separator'} as const,
 		emojiMenuOption('Facebook 3.0', EmojiStyle.Facebook30, true),
-		emojiMenuOption('Messenger 1.0', EmojiStyle.Messenger10, !is.linux || is.development),
+		emojiMenuOption('Messenger 1.0', EmojiStyle.Messenger10, true),
 		emojiMenuOption('Facebook 2.2', EmojiStyle.Facebook22, true),
 	]);
 }
