@@ -2,13 +2,13 @@ import {TouchBar, nativeImage} from 'electron';
 import {ipcMain as ipc} from 'electron-better-ipc';
 import config from './config';
 import {sendAction, getWindow} from './util';
-import {caprineIconPath} from './constants';
+import {mercuryIconPath} from './constants';
 
 const {TouchBarButton} = TouchBar;
 const MAX_VISIBLE_LENGTH = 25;
 const privateModeTouchBarLabel: Electron.TouchBarButton = new TouchBarButton({
 	label: 'Private mode enabled',
-	icon: nativeImage.createFromPath(caprineIconPath),
+	icon: nativeImage.createFromPath(mercuryIconPath),
 	iconPosition: 'left',
 });
 

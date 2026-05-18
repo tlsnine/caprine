@@ -1,14 +1,14 @@
 <div align="center">
 	<br>
 	<br>
-	<a href="https://github.com/tlsnine/caprine">
+	<a href="https://github.com/tlsnine/mercury-messenger">
 		<img src="media/AppIcon-readme.png" width="200" height="200">
 	</a>
-	<h1>Caprine</h1>
+	<h1>Mercury Messenger</h1>
 	<p><b>Facebook Messenger for macOS</b></p>
 	<p><em>macOS only — Linux and Windows are not supported.</em></p>
 	<br>
-	<a href="https://github.com/tlsnine/caprine/releases/latest">
+	<a href="https://github.com/tlsnine/mercury-messenger/releases/latest">
 		<img src="media/screenshot.png" width="846">
 	</a>
 </div>
@@ -33,15 +33,15 @@ This fork fixes all of that by replacing the entire approach with a native macOS
 
 ## Install
 
-Download the latest `.dmg` from the [releases page](https://github.com/tlsnine/caprine/releases/latest).
+Download the latest `.dmg` from the [releases page](https://github.com/tlsnine/mercury-messenger/releases/latest).
 
 Requires macOS 12+ (Intel and Apple Silicon).
 
 ### Build from source
 
 ```sh
-git clone https://github.com/tlsnine/caprine.git
-cd caprine
+git clone https://github.com/tlsnine/mercury-messenger.git
+cd mercury-messenger
 npm install && npm start
 ```
 
@@ -82,4 +82,4 @@ Preferences            | <kbd>⌘</kbd> <kbd>,</kbd>
 
 Based on [Caprine](https://github.com/sindresorhus/caprine) by [Sindre Sorhus](https://github.com/sindresorhus).
 
-Caprine is a third-party app and is not affiliated with Meta.
+Mercury Messenger is a third-party app and is not affiliated with Meta.

@@ -190,6 +190,11 @@ ipc.answerMain('next-conversation', nextConversation);
 
 ipc.answerMain('previous-conversation', previousConversation);
 
+ipc.answerMain('exit-deselected-state', async () => {
+	document.documentElement.classList.remove('deselected');
+	await ipc.callMain('set-config-conversationDeselected', false);
+});
+
 ipc.answerMain('mute-conversation', async () => {
 	await openMuteModal();
 });
@@ -507,6 +512,13 @@ ipc.answerMain('jump-to-conversation', async (key: number) => {
 });
 
 async function nextConversation(): Promise<void> {
+	if (document.documentElement.classList.contains('deselected')) {
+		document.documentElement.classList.remove('deselected');
+		await ipc.callMain('set-config-conversationDeselected', false);
+		await selectConversation(0);
+		return;
+	}
+
 	const index = selectedConversationIndex(1);
 
 	if (index !== -1) {
@@ -515,6 +527,18 @@ async function nextConversation(): Promise<void> {
 }
 
 async function previousConversation(): Promise<void> {
+	if (document.documentElement.classList.contains('deselected')) {
+		document.documentElement.classList.remove('deselected');
+		await ipc.callMain('set-config-conversationDeselected', false);
+
+		const list = await elementReady(selectors.conversationList, {stopOnDomReady: false});
+		if (list) {
+			await selectConversation(list.children.length - 1);
+		}
+
+		return;
+	}
+
 	const index = selectedConversationIndex(-1);
 
 	if (index !== -1) {
@@ -762,6 +786,99 @@ document.addEventListener('DOMContentLoaded', async () => {
 	// Set up macOS titlebar: make header bars draggable with proper spacing
 	setupMacOSTitlebar();
 
+	// Create empty state panel once [role='main'] exists
+	elementReady('[role="main"]', {stopOnDomReady: false}).then(mainEl => {
+		if (!mainEl) return;
+		if (document.getElementById('mercury-empty-state')) return;
+
+		const emptyState = document.createElement('div');
+		emptyState.id = 'mercury-empty-state';
+
+		const container = document.createElement('div');
+		container.id = 'mercury-empty-state-container';
+
+		const heading = document.createElement('h2');
+		heading.textContent = 'No conversation selected';
+		container.append(heading);
+
+		const shortcuts = document.createElement('div');
+		shortcuts.id = 'mercury-empty-state-shortcuts';
+
+		const shortcutDefs = [
+			{
+				keys: ['⌘', 'K'],
+				label: 'Find conversation',
+				action() {
+					const searchButton = document.querySelector<HTMLElement>('[aria-label="Search"]');
+					searchButton?.click();
+				},
+			},
+			{
+				keys: ['⌘', 'N'],
+				label: 'New conversation',
+				action() {
+					const newButton = document.querySelector<HTMLElement>('[aria-label="New conversation"]');
+					newButton?.click();
+				},
+			},
+			{
+				keys: ['⌘', ']'],
+				label: 'Next conversation',
+				action() {
+					nextConversation();
+				},
+			},
+			{
+				keys: ['⌘', '['],
+				label: 'Previous conversation',
+				action() {
+					previousConversation();
+				},
+			},
+			{
+				keys: ['⌘', '1–9'],
+				label: 'Jump to conversation',
+				action() {
+					selectConversation(0);
+				},
+			},
+			{
+				keys: ['⌘', 'D'],
+				label: 'Toggle dark mode',
+				action() {
+					document.documentElement.classList.toggle('dark-mode');
+				},
+			},
+		];
+
+		for (const def of shortcutDefs) {
+			const row = document.createElement('div');
+			row.className = 'shortcut-row';
+			for (const key of def.keys) {
+				const kbd = document.createElement('kbd');
+				kbd.textContent = key;
+				row.append(kbd);
+			}
+			const span = document.createElement('span');
+			span.textContent = def.label;
+			row.append(span);
+			row.addEventListener('click', def.action);
+			row.style.cursor = 'pointer';
+			row.title = `Click to ${def.label.toLowerCase()}`;
+			shortcuts.append(row);
+		}
+
+		container.append(shortcuts);
+		emptyState.append(container);
+		mainEl.prepend(emptyState);
+	});
+
+	// Restore deselected state from config
+	const wasDeselected = await ipc.callMain<undefined, boolean>('get-config-conversationDeselected');
+	if (wasDeselected) {
+		document.documentElement.classList.add('deselected');
+	}
+
 	// Restore sidebar view state to what is was set before quitting
 	updateSidebar();
 
@@ -790,7 +907,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 window.addEventListener('dblclick', (event: Event) => {
 	const target = event.target as HTMLElement;
 
-	if (target.id === 'caprine-titlebar' || target.id === 'caprine-titlebar-text') {
+	if (target.id === 'mercury-titlebar' || target.id === 'mercury-titlebar-text') {
 		ipc.callMain('titlebar-doubleclick');
 	}
 }, {
@@ -817,17 +934,44 @@ window.addEventListener('focus', () => {
 	document.documentElement.classList.remove('is-window-inactive');
 });
 
+// Conversation deselection: click the selected conversation to deselect it
+document.addEventListener('click', (event: MouseEvent) => {
+	const target = event.target as HTMLElement;
+	const conversationRow = target.closest('[role=navigation] [role=grid] [role=row]');
+	if (!conversationRow) return; // Not a conversation click
+
+	const selectedLink = conversationRow.querySelector<HTMLElement>('[role=link][aria-current=page]');
+	const isSelected = selectedLink !== null;
+
+	if (isSelected) {
+		const isDeselected = document.documentElement.classList.toggle('deselected');
+		ipc.callMain('set-config-conversationDeselected', isDeselected);
+	} else {
+		if (document.documentElement.classList.contains('deselected')) {
+			document.documentElement.classList.remove('deselected');
+			ipc.callMain('set-config-conversationDeselected', false);
+		}
+	}
+});
+
 function setupMacOSTitlebar(): void {
 	const titlebar = document.createElement('div');
-	titlebar.id = 'caprine-titlebar';
+	titlebar.id = 'mercury-titlebar';
 
 	const titleText = document.createElement('span');
-	titleText.id = 'caprine-titlebar-text';
-	titleText.textContent = 'Caprine';
+	titleText.id = 'mercury-titlebar-text';
+	titleText.textContent = 'Mercury Messenger';
 	titlebar.append(titleText);
 
 	document.body.prepend(titlebar);
+
+	// Add a stable class to Messenger's root container so CSS can target it reliably
+	const messengerRoot = document.body.querySelector('div:not([id])');
+	if (messengerRoot) {
+		messengerRoot.classList.add('mercury-main-container');
+	}
 }
+
 
 // It's not possible to add multiple accelerators
 // so this needs to be done the old-school way

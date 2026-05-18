@@ -58,7 +58,7 @@ electronContextMenu({
 	},
 });
 
-app.setAppUserModelId('com.sindresorhus.caprine');
+app.setAppUserModelId('com.tlsnine.mercury-messenger');
 
 if (!config.get('hardwareAcceleration')) {
 	app.disableHardwareAcceleration();
@@ -95,7 +95,7 @@ app.on('second-instance', () => {
 	}
 });
 
-// Preserves the window position when a display is removed and Caprine is moved to a different screen.
+// Preserves the window position when a display is removed and the app is moved to a different screen.
 app.on('ready', () => {
 	electronScreen.on('display-removed', () => {
 		const [x, y] = mainWindow.getPosition();
@@ -344,6 +344,10 @@ function createMainWindow(): BrowserWindow {
 	}
 
 	ipc.once('conversations', () => {
+		if (config.get('conversationDeselected')) {
+			return;
+		}
+
 		// Messenger sorts the conversations by unread state.
 		// We select the first conversation from the list.
 		sendAction('jump-to-conversation', 1);
@@ -361,6 +365,7 @@ function createMainWindow(): BrowserWindow {
 				icon: nativeImage.createFromDataURL(icon),
 				click() {
 					mainWindow.show();
+					sendAction('exit-deselected-state');
 					sendAction('jump-to-conversation', index + 1);
 				},
 			}));
@@ -382,12 +387,12 @@ function createMainWindow(): BrowserWindow {
 	const {webContents} = mainWindow;
 
 	webContents.on('dom-ready', async () => {
-		// Set window title to Caprine
+		// Set window title to Mercury Messenger
 		mainWindow.setTitle(app.name);
 
 		await updateAppMenu();
 
-		const files = ['browser.css', 'dark-mode.css', 'vibrancy.css', 'code-blocks.css', 'autoplay.css', 'scrollbar.css'];
+		const files = ['browser.css', 'dark-mode.css', 'vibrancy.css', 'code-blocks.css', 'autoplay.css'];
 
 		const cssPath = path.join(__dirname, '..', 'css');
 
@@ -613,6 +618,10 @@ ipc.answerRenderer<undefined, StoreType['sidebar']>('get-config-sidebar', async 
 ipc.answerRenderer<undefined, StoreType['zoomFactor']>('get-config-zoomFactor', async () => config.get('zoomFactor'));
 ipc.answerRenderer<StoreType['zoomFactor'], void>('set-config-zoomFactor', async zoomFactor => {
 	config.set('zoomFactor', zoomFactor);
+});
+ipc.answerRenderer<undefined, StoreType['conversationDeselected']>('get-config-conversationDeselected', async () => config.get('conversationDeselected'));
+ipc.answerRenderer<StoreType['conversationDeselected'], void>('set-config-conversationDeselected', async conversationDeselected => {
+	config.set('conversationDeselected', conversationDeselected);
 });
 ipc.answerRenderer<undefined, StoreType['keepMeSignedIn']>('get-config-keepMeSignedIn', async () => config.get('keepMeSignedIn'));
 ipc.answerRenderer<StoreType['keepMeSignedIn'], void>('set-config-keepMeSignedIn', async keepMeSignedIn => {

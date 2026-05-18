@@ -35,6 +35,7 @@ export type StoreType = {
 	autoUpdate: boolean;
 	notificationsMuted: boolean;
 	callRingtoneMuted: boolean;
+	conversationDeselected: boolean;
 	hardwareAcceleration: boolean;
 	quitOnWindowClose: boolean;
 	keepMeSignedIn: boolean;
@@ -177,6 +178,10 @@ const schema: Store.Schema<StoreType> = {
 		default: false,
 	},
 	callRingtoneMuted: {
+		type: 'boolean',
+		default: false,
+	},
+	conversationDeselected: {
 		type: 'boolean',
 		default: false,
 	},

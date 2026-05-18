@@ -216,10 +216,10 @@ export default async function updateMenu(): Promise<Menu> {
 				const filePath = path.join(app.getPath('userData'), 'custom.css');
 				const defaultCustomStyle = `/*
 This is the custom styles file where you can add anything you want.
-The styles here will be injected into Caprine and will override default styles.
+The styles here will be injected into Mercury Messenger and will override default styles.
 If you want to disable styles but keep the config, just comment the lines that you don't want to be used.
 
-Press Command/Ctrl+R in Caprine to see your changes.
+Press Command/Ctrl+R in Mercury Messenger to see your changes.
 */
 `;
 
@@ -311,7 +311,7 @@ Press Command/Ctrl+R in Caprine to see your changes.
 			checked: config.get('isSpellCheckerEnabled'),
 			click() {
 				config.set('isSpellCheckerEnabled', !config.get('isSpellCheckerEnabled'));
-				showRestartDialog('Caprine needs to be restarted to enable or disable the spell checker.');
+				showRestartDialog('Mercury Messenger needs to be restarted to enable or disable the spell checker.');
 			},
 		},
 		{
@@ -320,7 +320,7 @@ Press Command/Ctrl+R in Caprine to see your changes.
 			checked: config.get('hardwareAcceleration'),
 			click() {
 				config.set('hardwareAcceleration', !config.get('hardwareAcceleration'));
-				showRestartDialog('Caprine needs to be restarted to change hardware acceleration.');
+				showRestartDialog('Mercury Messenger needs to be restarted to change hardware acceleration.');
 			},
 		},
 		{
@@ -650,7 +650,7 @@ ${debugInfo()}`;
 
 				openNewGitHubIssue({
 					user: 'sindresorhus',
-					repo: 'caprine',
+					repo: 'mercury-messenger',
 					body,
 				});
 			},
@@ -694,7 +694,7 @@ ${debugInfo()}`;
 	const macosTemplate: MenuItemConstructorOptions[] = [
 		appMenu([
 			{
-				label: 'Caprine Preferences',
+				label: 'Mercury Messenger Preferences',
 				submenu: preferencesSubmenu,
 			},
 			{
@@ -712,7 +712,7 @@ ${debugInfo()}`;
 				type: 'separator',
 			},
 			{
-				label: 'Relaunch Caprine',
+				label: 'Relaunch Mercury Messenger',
 				click() {
 					app.relaunch();
 					app.quit();
